@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors'); // Import cors middleware
 const loginRoutes = require('./userRoutes/login'); // Import login routes
 const queryRoutes = require('./userRoutes/queryRoutes'); // Import query routes
 const otherRoutes = require('./userRoutes/routes'); // Import other routes (e.g., CRUD for Agent, Admin, Manager)
@@ -8,6 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(cors({ origin: '*' })); // Enable CORS for all origins using "*"
 app.use(bodyParser.json());
 
 // Use Routes

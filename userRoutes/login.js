@@ -32,7 +32,6 @@ router.post('/login/admin', (req, res) => {
   });
 });
 
-// Login for Agent
 router.post('/login/agent', (req, res) => {
   const { username, password } = req.body;
 
@@ -52,7 +51,8 @@ router.post('/login/agent', (req, res) => {
 
     const token = jwt.sign({ id: agent.agentId, role: 'agent' }, SECRET_KEY, { expiresIn: '1h' });
 
-    res.status(200).json({ token });
+    // Respond with both token and agentId
+    res.status(200).json({ token, id: agent.agentId });
   });
 });
 
