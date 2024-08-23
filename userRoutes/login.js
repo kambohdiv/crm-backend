@@ -44,6 +44,12 @@ router.post('/login/agent', (req, res) => {
     }
 
     const agent = results[0];
+
+    // Check if the agent is active
+    if (agent.isActive !== 'active') {
+      return res.status(403).send('Agent is not active');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, agent.password);
     if (!isPasswordValid) {
       return res.status(400).send('Invalid password');
@@ -55,6 +61,7 @@ router.post('/login/agent', (req, res) => {
     res.status(200).json({ token, id: agent.agentId });
   });
 });
+
 
 // Login for Manager
 router.post('/login/manager', (req, res) => {

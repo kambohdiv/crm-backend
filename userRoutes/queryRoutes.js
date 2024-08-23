@@ -58,9 +58,12 @@ router.post('/queries', (req, res) => {
   const travelTimeValue = TravelTime === '' ? null : TravelTime;
   const travelDateValue = TravelDate === '' ? null : TravelDate;
 
+  // Automatically capture the current date and time for queryDate
+  const queryDate = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format: YYYY-MM-DD HH:MM:SS
+
   connection.query(
-    'INSERT INTO Queries (type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, travelTimeValue, travelDateValue],
+    'INSERT INTO Queries (type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate, queryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, travelTimeValue, travelDateValue, queryDate],
     (err, results) => {
       if (err) {
         return res.status(500).send(err);
@@ -71,14 +74,34 @@ router.post('/queries', (req, res) => {
 });
 
 
-// Update an existing Query
 router.put('/queries/:queryId', (req, res) => {
   const { queryId } = req.params;
-  const { type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate } = req.body;
+  const {
+    type = '',        // Optional field with default empty string
+    queryData,        // Required field
+    destination = '', // Optional field with default empty string
+    travelType = '',  // Optional field with default empty string
+    queryType,        // Required field
+    leadSource,       // Required field
+    priority = '',    // Optional field with default empty string
+    agentId,          // Required field
+    status = '',      // Optional field with default empty string
+    TravelTime = null,  // Optional field, default to null
+    TravelDate = null   // Optional field, default to null
+  } = req.body;
+
+  // Check if required fields are present
+  if (!agentId || !leadSource || !queryType || !queryData) {
+    return res.status(400).send('Missing required fields: agentId, leadSource, queryType, queryData');
+  }
+
+  // If TravelTime or TravelDate is an empty string, set it to null
+  const travelTimeValue = TravelTime === '' ? null : TravelTime;
+  const travelDateValue = TravelDate === '' ? null : TravelDate;
 
   connection.query(
     'UPDATE Queries SET type = ?, queryData = ?, destination = ?, travelType = ?, queryType = ?, leadSource = ?, priority = ?, agentId = ?, status = ?, TravelTime = ?, TravelDate = ? WHERE queryId = ?',
-    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate, queryId],
+    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, travelTimeValue, travelDateValue, queryId],
     (err, results) => {
       if (err) {
         return res.status(500).send(err);

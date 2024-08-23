@@ -70,6 +70,10 @@ router.put('/agent/:id/activate', (req, res) => {
         return res.status(500).send(err);
       }
 
+      if (results.length === 0) {
+        return res.status(404).send('Agent not found');
+      }
+
       // Toggle the isActive status
       const currentStatus = results[0].isActive;
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -119,6 +123,7 @@ router.get('/query', (req, res) => {
       Queries.leadSource, 
       Queries.priority, 
       Queries.status, 
+      Queries.querydate,
       Queries.TravelTime, 
       Queries.TravelDate, 
       Agent.name AS agentName
