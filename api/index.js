@@ -1,8 +1,21 @@
-const BuiltTime = require('./built-time');
-module.exports = (request, response) => {
-  response.setHeader('content-type', 'text/plain');
-  response.send(`
-    This Serverless Function was built at ${new Date(BuiltTime)}.
-    The current time is ${new Date()}
-  `);
-};
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const loginRoutes = require('../userRoutes/login');
+const queryRoutes = require('../userRoutes/queryRoutes');
+const otherRoutes = require('../userRoutes/routes');
+const builtTime = require('../built-time');
+
+const app = express();
+
+// Middleware
+app.use(cors({ origin: '*' }));
+app.use(bodyParser.json());
+
+// Use Routes
+app.use('/api', loginRoutes);
+app.use('/api', queryRoutes);
+app.use('/api', otherRoutes);
+
+// Export the Express app
+module.exports = app;
