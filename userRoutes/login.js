@@ -1,4 +1,3 @@
-// loginRoutes.js
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -31,6 +30,7 @@ router.post('/login/admin', (req, res) => {
   });
 });
 
+// Login for Agent
 router.post('/login/agent', (req, res) => {
   const { username, password } = req.body;
 
@@ -61,7 +61,6 @@ router.post('/login/agent', (req, res) => {
   });
 });
 
-
 // Login for Manager
 router.post('/login/manager', (req, res) => {
   const { username, password } = req.body;
@@ -75,6 +74,12 @@ router.post('/login/manager', (req, res) => {
     }
 
     const manager = results[0];
+
+    // Check if the manager is active
+    if (manager.isActive !== 'active') {
+      return res.status(403).send('Manager is not active');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, manager.password);
     if (!isPasswordValid) {
       return res.status(400).send('Invalid password');
@@ -82,7 +87,8 @@ router.post('/login/manager', (req, res) => {
 
     const token = jwt.sign({ id: manager.managerId, role: 'manager' }, SECRET_KEY, { expiresIn: '1h' });
 
-    res.status(200).json({ token });
+    // Respond with both token and managerId
+    res.status(200).json({ token, id: manager.managerId });
   });
 });
 

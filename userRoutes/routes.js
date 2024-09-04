@@ -96,11 +96,13 @@ router.put('/agent/:id/activate', (req, res) => {
 
 
 // CRUD for Queries
+
+// POST /query - Add a New Query
 router.post('/query', (req, res) => {
-  const { type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate } = req.body;
+  const { full_name, phone_number, Comments, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate } = req.body;
   connection.query(
-    'INSERT INTO Queries (type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate],
+    'INSERT INTO Queries (full_name, phone_number, Comments, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [full_name, phone_number, Comments, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate],
     (err, results) => {
       if (err) {
         console.log(err)
@@ -111,13 +113,14 @@ router.post('/query', (req, res) => {
   );
 });
 
+// GET /query - Retrieve All Queries
 router.get('/query', (req, res) => {
   const query = `
     SELECT 
       Queries.queryId, 
-      Queries.type, 
-      Queries.queryData, 
-      Queries.destination, 
+      Queries.full_name, 
+      Queries.phone_number, 
+      Queries.Comments, 
       Queries.travelType, 
       Queries.queryType, 
       Queries.leadSource, 
@@ -126,6 +129,7 @@ router.get('/query', (req, res) => {
       Queries.querydate,
       Queries.TravelTime, 
       Queries.TravelDate, 
+      Queries.editReasons, -- Ensure this column exists in your database
       Agent.name AS agentName
     FROM Queries
     LEFT JOIN Agent ON Queries.agentId = Agent.agentId
@@ -139,7 +143,7 @@ router.get('/query', (req, res) => {
   });
 });
 
-
+// GET /query/:id - Retrieve a Single Query by ID
 router.get('/query/:id', (req, res) => {
   connection.query('SELECT * FROM Queries WHERE queryId = ?', [req.params.id], (err, results) => {
     if (err) {
@@ -149,20 +153,44 @@ router.get('/query/:id', (req, res) => {
   });
 });
 
+// PUT /query/:id - Update an Existing Query
 router.put('/query/:id', (req, res) => {
-  const { type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate } = req.body;
-  connection.query(
-    'UPDATE Queries SET type = ?, queryData = ?, destination = ?, travelType = ?, queryType = ?, leadSource = ?, priority = ?, agentId = ?, status = ?, TravelTime = ?, TravelDate = ? WHERE queryId = ?',
-    [type, queryData, destination, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate, req.params.id],
-    (err, results) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      res.status(200).send('Query updated successfully');
+  const { full_name, phone_number, Comments, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate, editReason } = req.body;
+  
+  // Fetch current edit reasons from the database
+  connection.query('SELECT editReasons FROM Queries WHERE queryId = ?', [req.params.id], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
     }
-  );
+
+    let currentEditReasons = results[0]?.editReasons || '[]'; // Default to an empty array if null
+    let newEditReasons;
+
+    try {
+      currentEditReasons = JSON.parse(currentEditReasons); // Parse the current edit reasons JSON string
+    } catch (parseError) {
+      currentEditReasons = []; // Fallback to empty array on parse error
+    }
+
+    if (editReason) {
+      currentEditReasons.push(editReason); // Append new edit reason
+      newEditReasons = JSON.stringify(currentEditReasons); // Convert back to JSON string for storage
+    }
+
+    connection.query(
+      'UPDATE Queries SET full_name = ?, phone_number = ?, Comments = ?, travelType = ?, queryType = ?, leadSource = ?, priority = ?, agentId = ?, status = ?, TravelTime = ?, TravelDate = ?, editReasons = ? WHERE queryId = ?',
+      [full_name, phone_number, Comments, travelType, queryType, leadSource, priority, agentId, status, TravelTime, TravelDate, newEditReasons, req.params.id],
+      (err, results) => {
+        if (err) {
+          return res.status(500).send(err);
+        }
+        res.status(200).send('Query updated successfully');
+      }
+    );
+  });
 });
 
+// DELETE /query/:id - Delete a Query
 router.delete('/query/:id', (req, res) => {
   connection.query('DELETE FROM Queries WHERE queryId = ?', [req.params.id], (err, results) => {
     if (err) {
@@ -231,14 +259,16 @@ router.delete('/admin/:id', (req, res) => {
 });
 
 // CRUD for Manager
+// POST /manager - Add a New Manager
 router.post('/manager', async (req, res) => {
-  const { username, password } = req.body;
+  const { name, contactNumber, email, username, password, isActive } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   connection.query(
-    'INSERT INTO Manager (username, password) VALUES (?, ?)',
-    [username, hashedPassword],
+    'INSERT INTO Manager (name, contactNumber, email, username, password, isActive) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, contactNumber, email, username, hashedPassword, isActive],
     (err, results) => {
       if (err) {
+        console.log(err);
         return res.status(500).send(err);
       }
       res.status(201).send('Manager added successfully');
@@ -246,6 +276,7 @@ router.post('/manager', async (req, res) => {
   );
 });
 
+// GET /manager - Retrieve All Managers
 router.get('/manager', (req, res) => {
   connection.query('SELECT * FROM Manager', (err, results) => {
     if (err) {
@@ -255,6 +286,7 @@ router.get('/manager', (req, res) => {
   });
 });
 
+// GET /manager/:id - Retrieve a Single Manager by ID
 router.get('/manager/:id', (req, res) => {
   connection.query('SELECT * FROM Manager WHERE managerId = ?', [req.params.id], (err, results) => {
     if (err) {
@@ -264,12 +296,13 @@ router.get('/manager/:id', (req, res) => {
   });
 });
 
+// PUT /manager/:id - Update an Existing Manager
 router.put('/manager/:id', async (req, res) => {
-  const { username, password } = req.body;
+  const { name, contactNumber, email, username, password, isActive } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   connection.query(
-    'UPDATE Manager SET username = ?, password = ? WHERE managerId = ?',
-    [username, hashedPassword, req.params.id],
+    'UPDATE Manager SET name = ?, contactNumber = ?, email = ?, username = ?, password = ?, isActive = ? WHERE managerId = ?',
+    [name, contactNumber, email, username, hashedPassword, isActive, req.params.id],
     (err, results) => {
       if (err) {
         return res.status(500).send(err);
@@ -279,14 +312,41 @@ router.put('/manager/:id', async (req, res) => {
   );
 });
 
-router.delete('/manager/:id', (req, res) => {
-  connection.query('DELETE FROM Manager WHERE managerId = ?', [req.params.id], (err, results) => {
-    if (err) {
-      return res.status(500).send(err);
-    }
-    res.status(200).send('Manager deleted successfully');
-  });
-});
 
+
+router.put('/manager/:id/activate', (req, res) => {
+  // First, fetch the current isActive status of the agent
+  connection.query(
+    'SELECT isActive FROM  Manager WHERE managerId = ?',
+    [req.params.id],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).send(err);
+      }
+
+      if (results.length === 0) {
+        return res.status(404).send('Manager not found');
+      }
+
+      // Toggle the isActive status
+      const currentStatus = results[0].isActive;
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+      // Update the isActive status in the database
+      connection.query(
+        'UPDATE Manager SET isActive = ? WHERE managerId = ?',
+        [newStatus, req.params.id],
+        (err, results) => {
+          if (err) {
+            console.log(err);
+            return res.status(500).send(err);
+          }
+          res.status(200).send(`Manager ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+        }
+      );
+    }
+  );
+});
 // Export the router
 module.exports = router;
